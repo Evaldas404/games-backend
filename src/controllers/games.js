@@ -1,22 +1,29 @@
 import { v4 as uuidv4 } from "uuid";
-import VideoGamesModel from "../models/videogames.js";
+import GamesModel from "../models/videogames.js";
 
-let videoGames = [];
+const games = [];
 
-export const INSERT_GAME = async (req, res) => {
+export const INSERT = async (req, res) => {
   try {
-    const videoGame = {
+    const existingGame = await GamesModel.findOne({ title: req.body.title });
+
+    if (existingGame) {
+      return res.status(404).json({
+        message: `Game ${req.body.title} already exist`,
+      });
+    }
+
+    const game = {
+      ...req.body,
       id: uuidv4(),
-      title: req.body.title,
-      price: req.body.price,
-      imgURL: req.body.imgURL,
+      createdAt: new Date(),
     };
 
-    const response = new VideoGamesModel(videoGame);
+    const response = new GamesModel(game);
 
     const data = await response.save();
 
-    videoGames.push(videoGame);
+    games.push(game);
 
     res.status(201).json({
       message: "Game was added",
@@ -30,11 +37,11 @@ export const INSERT_GAME = async (req, res) => {
   }
 };
 
-export const GET_ALL_GAMES = async (req, res) => {
+export const ALL_GAMES = async (req, res) => {
   try {
-    const videoGames = await VideoGamesModel.find();
+    const games = await GamesModel.find({deleted:false});
     res.status(200).json({
-      videoGames: videoGames,
+      games: games,
     });
   } catch (err) {
     console.log(err);
@@ -44,19 +51,19 @@ export const GET_ALL_GAMES = async (req, res) => {
   }
 };
 
-export const GET_GAME_BY_ID = async (req, res) => {
+export const GAME_BY_ID = async (req, res) => {
   try {
     const id = req.params.id;
-    const videoGame = await VideoGamesModel.findOne({ id: id });
+    const game = await GamesModel.findOne({ id: id });
 
-    if (!videoGame) {
+    if (!game) {
       return res.status(404).json({
-        message: "This video game does not exist",
+        message: "This game does not exist",
       });
     }
     return res.status(200).json({
       message: "Your game",
-      video_game: videoGame,
+      video_game: game,
     });
   } catch (err) {
     console.log(err);
@@ -66,22 +73,22 @@ export const GET_GAME_BY_ID = async (req, res) => {
   }
 };
 
-export const UPDATE_GAME_BY_ID = async (req, res) => {
+export const UPDATE_BY_ID = async (req, res) => {
   try {
     const id = req.params.id;
-    const videoGame = await VideoGamesModel.findOneAndUpdate(
+    const game = await GamesModel.findOneAndUpdate(
       { id: id },
       { ...req.boyd },
       { new: true }
     );
-    if (!videoGame) {
+    if (!game) {
       return res.status(404).json({
         message: "This video game does not exist",
       });
     }
     return res.status(200).json({
       message: "Updated video game",
-      videoGame: videoGame,
+      game: game,
     });
   } catch (err) {
     console.log(err);
@@ -91,22 +98,22 @@ export const UPDATE_GAME_BY_ID = async (req, res) => {
   }
 };
 
-export const DELETE_GAME_BY_ID = async (req, res) => {
+export const DELETE_BY_ID = async (req, res) => {
   try {
     const id = req.params.id;
-    const videoGame = await VideoGamesModel.findOneAndDelete({ id: id });
-    if (!videoGame) {
+    const game = await GamesModel.findOneAndUpdate(
+      { id, deleted: true },
+      { deleted: true },
+      { new: true }
+    )
+    if (!game) {
       return res.status(404).json({
         message: "This video game does not exist",
       });
     }
 
-    const filteredVideoGames = videoGames.filter((v) => v.id !== id);
-
-    videoGames = filteredVideoGames;
-
     return res.status(200).json({
-      message: "Video game was deleted",
+      message: "Video game was soft deleted",
     });
   } catch (err) {
     console.log(err);
